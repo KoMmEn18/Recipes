@@ -12,6 +12,7 @@ public class RecipeUtils {
     public static Recipe convertToEntity(RecipeDTO recipeDTO) {
         return new Recipe(
                 recipeDTO.getName(),
+                recipeDTO.getCategory(),
                 recipeDTO.getDescription(),
                 recipeDTO.getIngredients().stream()
                         .map(RecipeIngredient::new)
@@ -25,6 +26,8 @@ public class RecipeUtils {
     public static RecipeDTO convertToDTO(Recipe recipe) {
         return new RecipeDTO(
                 recipe.getName(),
+                recipe.getCategory(),
+                recipe.getDate(),
                 recipe.getDescription(),
                 recipe.getIngredients().stream().map(RecipeIngredient::getName).collect(Collectors.toList()),
                 recipe.getDirections().stream().map(RecipeDirection::getDescription).collect(Collectors.toList())

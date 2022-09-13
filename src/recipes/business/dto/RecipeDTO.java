@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -15,6 +16,11 @@ public class RecipeDTO {
 
     @NotBlank
     private String name;
+
+    @NotBlank
+    private String category;
+
+    private LocalDateTime date;
 
     @NotBlank
     private String description;

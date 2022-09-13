@@ -11,25 +11,22 @@ import recipes.business.RecipeService;
 import recipes.business.dto.RecipeDTO;
 import recipes.business.util.RecipeUtils;
 
-import java.util.Collections;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/")
 public class RecipeController {
 
     private RecipeService recipeService;
+    private Map<String, Function<String, List<Recipe>>> searchHandler = new HashMap<>();
 
     @Autowired
     public RecipeController(RecipeService recipeService) {
         this.recipeService = recipeService;
-    }
-
-    @PostMapping("/recipe/new")
-    public Map<String, Long> postRecipe(@Validated @RequestBody RecipeDTO recipeDTO) {
-        Recipe recipe = recipeService.save(RecipeUtils.convertToEntity(recipeDTO));
-
-        return Collections.singletonMap("id", recipe.getId());
+        searchHandler.put("name", recipeService::searchByName);
+        searchHandler.put("category", recipeService::searchByCategory);
     }
 
     @GetMapping("/recipe/{id}")
@@ -43,6 +40,22 @@ public class RecipeController {
         return RecipeUtils.convertToDTO(recipe);
     }
 
+    @PostMapping("/recipe/new")
+    public Map<String, Long> postRecipe(@Validated @RequestBody RecipeDTO recipeDTO) {
+        Recipe recipe = recipeService.save(RecipeUtils.convertToEntity(recipeDTO));
+
+        return Collections.singletonMap("id", recipe.getId());
+    }
+
+    @PutMapping("/recipe/{id}")
+    public ResponseEntity<String> updateRecipe(@PathVariable long id, @Validated @RequestBody RecipeDTO recipeDTO) {
+        if (recipeService.updateById(id, RecipeUtils.convertToEntity(recipeDTO))) {
+            return new ResponseEntity<>("Recipe with id = " + id + " have been updated", HttpStatus.NO_CONTENT);
+        }
+
+        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe of given id not found");
+    }
+
     @DeleteMapping("/recipe/{id}")
     public ResponseEntity<String> deleteRecipe(@PathVariable long id) {
         if (recipeService.deleteById(id)) {
@@ -50,5 +63,19 @@ public class RecipeController {
         }
 
         throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe of given id not found");
+    }
+
+    @GetMapping("/recipe/search")
+    public List<RecipeDTO> searchRecipe(@RequestParam Map<String, String> params) {
+        Map.Entry<String, String> paramEntry;
+        if (params.size() != 1 || !searchHandler.containsKey((paramEntry = params.entrySet().iterator().next()).getKey())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You should specify exactly one parameter from {name, category}");
+        }
+
+        return searchHandler.get(paramEntry.getKey())
+                .apply(paramEntry.getValue())
+                .stream()
+                .map(RecipeUtils::convertToDTO)
+                .collect(Collectors.toList());
     }
 }
