@@ -1,6 +1,8 @@
 package recipes.business;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import recipes.persistence.RecipeRepository;
 
@@ -21,11 +23,13 @@ public class RecipeService {
     }
 
     public Recipe save(Recipe recipe) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) auth.getPrincipal();
+        recipe.setUser(user);
         return recipeRepository.save(recipe);
     }
 
-    public boolean updateById(Long id, Recipe newRecipe) {
-        Recipe recipe = findById(id);
+    public boolean update(Recipe recipe, Recipe newRecipe) {
         if (recipe != null) {
             recipe.setName(newRecipe.getName());
             recipe.setCategory(newRecipe.getCategory());
@@ -45,13 +49,8 @@ public class RecipeService {
         return false;
     }
 
-    public boolean deleteById(Long id) {
-        if (recipeRepository.existsById(id)) {
-            recipeRepository.deleteById(id);
-            return true;
-        }
-
-        return false;
+    public void delete(Recipe recipe) {
+        recipeRepository.delete(recipe);
     }
 
     public List<Recipe> searchByName(String name) {

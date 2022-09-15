@@ -3,11 +3,13 @@ package recipes.presentation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import recipes.business.Recipe;
 import recipes.business.RecipeService;
+import recipes.business.User;
 import recipes.business.dto.RecipeDTO;
 import recipes.business.util.RecipeUtils;
 
@@ -48,21 +50,36 @@ public class RecipeController {
     }
 
     @PutMapping("/recipe/{id}")
-    public ResponseEntity<String> updateRecipe(@PathVariable long id, @Validated @RequestBody RecipeDTO recipeDTO) {
-        if (recipeService.updateById(id, RecipeUtils.convertToEntity(recipeDTO))) {
-            return new ResponseEntity<>("Recipe with id = " + id + " have been updated", HttpStatus.NO_CONTENT);
+    public ResponseEntity<String> updateRecipe(
+            @PathVariable long id,
+            @Validated @RequestBody RecipeDTO recipeDTO,
+            @AuthenticationPrincipal User user) {
+        Recipe recipe = recipeService.findById(id);
+        if (recipe == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe of given id not found");
         }
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe of given id not found");
+        if (recipe.getUser().getId() != user.getId()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not permitted to update a recipe that does not belong to you.");
+        }
+
+        recipeService.update(recipe, RecipeUtils.convertToEntity(recipeDTO));
+        return new ResponseEntity<>("Recipe with id = " + id + " have been updated", HttpStatus.NO_CONTENT);
     }
 
     @DeleteMapping("/recipe/{id}")
-    public ResponseEntity<String> deleteRecipe(@PathVariable long id) {
-        if (recipeService.deleteById(id)) {
-            return new ResponseEntity<>("Recipe with id = " + id + " have been deleted", HttpStatus.NO_CONTENT);
+    public ResponseEntity<String> deleteRecipe(@PathVariable long id, @AuthenticationPrincipal User user) {
+        Recipe recipe = recipeService.findById(id);
+        if (recipe == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe of given id not found");
         }
 
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipe of given id not found");
+        if (recipe.getUser().getId() != user.getId()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not permitted to delete a recipe that does not belong to you.");
+        }
+
+        recipeService.delete(recipe);
+        return new ResponseEntity<>("Recipe with id = " + id + " have been deleted", HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/recipe/search")
