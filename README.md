@@ -6,6 +6,7 @@ Simple REST API app to store recipes created by users.
 - Spring Boot among with security component
 - JSON as data transfer
 - H2 database
+- JPA
 
 ## Endpoints
 - *POST* **/api/register** <br>
